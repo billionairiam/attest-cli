@@ -26,113 +26,121 @@ macro_rules! parse_claim {
 }
 
 pub fn generate_parsed_claim(
-    quote: Quote,
+    quote: Option<Quote>,
     cc_eventlog: Option<CcEventLog>,
     aa_eventlog: Option<AAEventlog>,
 ) -> Result<TeeEvidenceParsedClaim> {
-    let mut quote_map = Map::new();
-    let mut quote_body = Map::new();
-    let mut quote_header = Map::new();
+    let mut claims = Map::new();
 
-    match &quote {
-        Quote::V4 {
-            header,
-            body,
-            certs,
-        } => {
-            parse_claim!(quote_header, "version", b"\x04\x00");
-            parse_claim!(quote_header, "att_key_type", header.att_key_type);
-            parse_claim!(quote_header, "tee_type", header.tee_type);
-            parse_claim!(quote_header, "reserved", header.reserved);
-            parse_claim!(quote_header, "vendor_id", header.vendor_id);
-            parse_claim!(quote_header, "user_data", header.user_data);
+    if let Some(quote) = quote {
+        let mut quote_map = Map::new();
+        let mut quote_body = Map::new();
+        let mut quote_header = Map::new();
 
-            parse_claim!(quote_body, "tcb_svn", body.tcb_svn);
-            parse_claim!(quote_body, "mr_seam", body.mr_seam);
-            parse_claim!(quote_body, "mrsigner_seam", body.mrsigner_seam);
-            parse_claim!(quote_body, "seam_attributes", body.seam_attributes);
-            parse_claim!(quote_body, "td_attributes", body.td_attributes);
-            parse_claim!(quote_body, "xfam", body.xfam);
-            parse_claim!(quote_body, "mr_td", body.mr_td);
-            parse_claim!(quote_body, "mr_config_id", body.mr_config_id);
-            parse_claim!(quote_body, "mr_owner", body.mr_owner);
-            parse_claim!(quote_body, "mr_owner_config", body.mr_owner_config);
-            parse_claim!(quote_body, "rtmr_0", body.rtmr_0);
-            parse_claim!(quote_body, "rtmr_1", body.rtmr_1);
-            parse_claim!(quote_body, "rtmr_2", body.rtmr_2);
-            parse_claim!(quote_body, "rtmr_3", body.rtmr_3);
-            parse_claim!(quote_body, "report_data", body.report_data);
+        match &quote {
+            Quote::V4 {
+                header,
+                body,
+                certs,
+            } => {
+                parse_claim!(quote_header, "version", b"\x04\x00");
+                parse_claim!(quote_header, "att_key_type", header.att_key_type);
+                parse_claim!(quote_header, "tee_type", header.tee_type);
+                parse_claim!(quote_header, "reserved", header.reserved);
+                parse_claim!(quote_header, "vendor_id", header.vendor_id);
+                parse_claim!(quote_header, "user_data", header.user_data);
 
-            parse_claim!(quote_map, "header", quote_header);
-            parse_claim!(quote_map, "body", quote_body);
-            parse_claim!(quote_map, "certs", certs);
-        }
-        Quote::V5 {
-            header,
-            r#type,
-            size,
-            body,
-            certs,
-        } => {
-            parse_claim!(quote_header, "version", b"\x05\x00");
-            parse_claim!(quote_header, "att_key_type", header.att_key_type);
-            parse_claim!(quote_header, "tee_type", header.tee_type);
-            parse_claim!(quote_header, "reserved", header.reserved);
-            parse_claim!(quote_header, "vendor_id", header.vendor_id);
-            parse_claim!(quote_header, "user_data", header.user_data);
-            parse_claim!(quote_map, "type", r#type.as_bytes());
-            parse_claim!(quote_map, "size", &size[..]);
-            match body {
-                QuoteV5Body::Tdx10(body) => {
-                    parse_claim!(quote_body, "tcb_svn", body.tcb_svn);
-                    parse_claim!(quote_body, "mr_seam", body.mr_seam);
-                    parse_claim!(quote_body, "mrsigner_seam", body.mrsigner_seam);
-                    parse_claim!(quote_body, "seam_attributes", body.seam_attributes);
-                    parse_claim!(quote_body, "td_attributes", body.td_attributes);
-                    parse_claim!(quote_body, "xfam", body.xfam);
-                    parse_claim!(quote_body, "mr_td", body.mr_td);
-                    parse_claim!(quote_body, "mr_config_id", body.mr_config_id);
-                    parse_claim!(quote_body, "mr_owner", body.mr_owner);
-                    parse_claim!(quote_body, "mr_owner_config", body.mr_owner_config);
-                    parse_claim!(quote_body, "rtmr_0", body.rtmr_0);
-                    parse_claim!(quote_body, "rtmr_1", body.rtmr_1);
-                    parse_claim!(quote_body, "rtmr_2", body.rtmr_2);
-                    parse_claim!(quote_body, "rtmr_3", body.rtmr_3);
-                    parse_claim!(quote_body, "report_data", body.report_data);
+                parse_claim!(quote_body, "tcb_svn", body.tcb_svn);
+                parse_claim!(quote_body, "mr_seam", body.mr_seam);
+                parse_claim!(quote_body, "mrsigner_seam", body.mrsigner_seam);
+                parse_claim!(quote_body, "seam_attributes", body.seam_attributes);
+                parse_claim!(quote_body, "td_attributes", body.td_attributes);
+                parse_claim!(quote_body, "xfam", body.xfam);
+                parse_claim!(quote_body, "mr_td", body.mr_td);
+                parse_claim!(quote_body, "mr_config_id", body.mr_config_id);
+                parse_claim!(quote_body, "mr_owner", body.mr_owner);
+                parse_claim!(quote_body, "mr_owner_config", body.mr_owner_config);
+                parse_claim!(quote_body, "rtmr_0", body.rtmr_0);
+                parse_claim!(quote_body, "rtmr_1", body.rtmr_1);
+                parse_claim!(quote_body, "rtmr_2", body.rtmr_2);
+                parse_claim!(quote_body, "rtmr_3", body.rtmr_3);
+                parse_claim!(quote_body, "report_data", body.report_data);
 
-                    parse_claim!(quote_map, "header", quote_header);
-                    parse_claim!(quote_map, "body", quote_body);
-                    parse_claim!(quote_map, "certs", certs);
-                }
-                QuoteV5Body::Tdx15(body) => {
-                    parse_claim!(quote_body, "tcb_svn", body.tcb_svn);
-                    parse_claim!(quote_body, "mr_seam", body.mr_seam);
-                    parse_claim!(quote_body, "mrsigner_seam", body.mrsigner_seam);
-                    parse_claim!(quote_body, "seam_attributes", body.seam_attributes);
-                    parse_claim!(quote_body, "td_attributes", body.td_attributes);
-                    parse_claim!(quote_body, "xfam", body.xfam);
-                    parse_claim!(quote_body, "mr_td", body.mr_td);
-                    parse_claim!(quote_body, "mr_config_id", body.mr_config_id);
-                    parse_claim!(quote_body, "mr_owner", body.mr_owner);
-                    parse_claim!(quote_body, "mr_owner_config", body.mr_owner_config);
-                    parse_claim!(quote_body, "rtmr_0", body.rtmr_0);
-                    parse_claim!(quote_body, "rtmr_1", body.rtmr_1);
-                    parse_claim!(quote_body, "rtmr_2", body.rtmr_2);
-                    parse_claim!(quote_body, "rtmr_3", body.rtmr_3);
-                    parse_claim!(quote_body, "report_data", body.report_data);
+                parse_claim!(quote_map, "header", quote_header);
+                parse_claim!(quote_map, "body", quote_body);
+                parse_claim!(quote_map, "certs", certs);
+            }
+            Quote::V5 {
+                header,
+                r#type,
+                size,
+                body,
+                certs,
+            } => {
+                parse_claim!(quote_header, "version", b"\x05\x00");
+                parse_claim!(quote_header, "att_key_type", header.att_key_type);
+                parse_claim!(quote_header, "tee_type", header.tee_type);
+                parse_claim!(quote_header, "reserved", header.reserved);
+                parse_claim!(quote_header, "vendor_id", header.vendor_id);
+                parse_claim!(quote_header, "user_data", header.user_data);
+                parse_claim!(quote_map, "type", r#type.as_bytes());
+                parse_claim!(quote_map, "size", &size[..]);
+                match body {
+                    QuoteV5Body::Tdx10(body) => {
+                        parse_claim!(quote_body, "tcb_svn", body.tcb_svn);
+                        parse_claim!(quote_body, "mr_seam", body.mr_seam);
+                        parse_claim!(quote_body, "mrsigner_seam", body.mrsigner_seam);
+                        parse_claim!(quote_body, "seam_attributes", body.seam_attributes);
+                        parse_claim!(quote_body, "td_attributes", body.td_attributes);
+                        parse_claim!(quote_body, "xfam", body.xfam);
+                        parse_claim!(quote_body, "mr_td", body.mr_td);
+                        parse_claim!(quote_body, "mr_config_id", body.mr_config_id);
+                        parse_claim!(quote_body, "mr_owner", body.mr_owner);
+                        parse_claim!(quote_body, "mr_owner_config", body.mr_owner_config);
+                        parse_claim!(quote_body, "rtmr_0", body.rtmr_0);
+                        parse_claim!(quote_body, "rtmr_1", body.rtmr_1);
+                        parse_claim!(quote_body, "rtmr_2", body.rtmr_2);
+                        parse_claim!(quote_body, "rtmr_3", body.rtmr_3);
+                        parse_claim!(quote_body, "report_data", body.report_data);
 
-                    parse_claim!(quote_body, "tee_tcb_svn2", body.tee_tcb_svn2);
-                    parse_claim!(quote_body, "mr_servicetd", body.mr_servicetd);
+                        parse_claim!(quote_map, "header", quote_header);
+                        parse_claim!(quote_map, "body", quote_body);
+                        parse_claim!(quote_map, "certs", certs);
+                    }
+                    QuoteV5Body::Tdx15(body) => {
+                        parse_claim!(quote_body, "tcb_svn", body.tcb_svn);
+                        parse_claim!(quote_body, "mr_seam", body.mr_seam);
+                        parse_claim!(quote_body, "mrsigner_seam", body.mrsigner_seam);
+                        parse_claim!(quote_body, "seam_attributes", body.seam_attributes);
+                        parse_claim!(quote_body, "td_attributes", body.td_attributes);
+                        parse_claim!(quote_body, "xfam", body.xfam);
+                        parse_claim!(quote_body, "mr_td", body.mr_td);
+                        parse_claim!(quote_body, "mr_config_id", body.mr_config_id);
+                        parse_claim!(quote_body, "mr_owner", body.mr_owner);
+                        parse_claim!(quote_body, "mr_owner_config", body.mr_owner_config);
+                        parse_claim!(quote_body, "rtmr_0", body.rtmr_0);
+                        parse_claim!(quote_body, "rtmr_1", body.rtmr_1);
+                        parse_claim!(quote_body, "rtmr_2", body.rtmr_2);
+                        parse_claim!(quote_body, "rtmr_3", body.rtmr_3);
+                        parse_claim!(quote_body, "report_data", body.report_data);
 
-                    parse_claim!(quote_map, "header", quote_header);
-                    parse_claim!(quote_map, "body", quote_body);
-                    parse_claim!(quote_map, "certs", certs);
+                        parse_claim!(quote_body, "tee_tcb_svn2", body.tee_tcb_svn2);
+                        parse_claim!(quote_body, "mr_servicetd", body.mr_servicetd);
+
+                        parse_claim!(quote_map, "header", quote_header);
+                        parse_claim!(quote_map, "body", quote_body);
+                        parse_claim!(quote_map, "certs", certs);
+                    }
                 }
             }
         }
-    }
+        parse_claim!(claims, "quote", quote_map);
 
-    let mut claims = Map::new();
+        let td_attributes = parse_td_attributes(quote.td_attributes())?;
+        parse_claim!(claims, "td_attributes", td_attributes);
+
+        parse_claim!(claims, "report_data", quote.report_data());
+    }
 
     // Claims from CC EventLog.
     let mut ccel_map = Map::new();
@@ -141,18 +149,11 @@ pub fn generate_parsed_claim(
         parse_claim!(claims, "ccel", ccel_map);
     }
 
-    let td_attributes = parse_td_attributes(quote.td_attributes())?;
-
     // Claims from AA eventlog
     if let Some(aael) = aa_eventlog {
         let aael_map = aael.to_parsed_claims();
         parse_claim!(claims, "aael", aael_map);
     }
-
-    parse_claim!(claims, "quote", quote_map);
-    parse_claim!(claims, "td_attributes", td_attributes);
-
-    parse_claim!(claims, "report_data", quote.report_data());
 
     let claims_str = serde_json::to_string_pretty(&claims)?;
     debug!("Parsed Evidence claims map: \n{claims_str}\n");
