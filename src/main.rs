@@ -9,9 +9,9 @@ use serde_json::to_string_pretty;
 use std::fs;
 use std::sync::Arc;
 
-use tdquote_tool::eventlog::*;
-use tdquote_tool::tdx::*;
-use tdquote_tool::{BoxedAttester, detect_tee_type};
+use attest_cli::eventlog::*;
+use attest_cli::tdx::*;
+use attest_cli::{BoxedAttester, detect_tee_type};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -230,8 +230,26 @@ fn perform_integrity_check(quote: &Quote, ccel: &CcEventLog) -> Result<()> {
         rtmr3: get_rtmr(4)?,
     };
 
-    info!("RTMR from TD Quote:      {:?}", rtmr_quote);
-    info!("Rebuilt RTMR from Logs:  {:?}", rtmr_eventlog);
+    let rtmr_to_json = |label: &str, r: &Rtmr| {
+        serde_json::json!({
+            "source": label,
+            "rtmr0": hex::encode(r.rtmr0),
+            "rtmr1": hex::encode(r.rtmr1),
+            "rtmr2": hex::encode(r.rtmr2),
+            "rtmr3": hex::encode(r.rtmr3),
+        })
+    };
+
+    let comparison_json = serde_json::json!({
+        "rtmr_from_quote": rtmr_to_json("TD Quote", &rtmr_quote),
+        "rtmr_from_eventlog": rtmr_to_json("CC EventLog Replay", &rtmr_eventlog),
+        "status": "verifying..."
+    });
+
+    info!(
+        "RTMR Integrity Check Details:\n{}",
+        serde_json::to_string_pretty(&comparison_json)?
+    );
 
     // Call the library's internal integrity check
     ccel.integrity_check(rtmr_quote)
